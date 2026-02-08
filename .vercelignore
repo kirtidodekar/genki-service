@@ -1,0 +1,9 @@
+# Vercel Ignore
+dist
+node_modules
+.env
+.git
+.github
+*.log
+.DS_Store
+tsconfig.tsbuildinfo
