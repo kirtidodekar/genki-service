@@ -21,7 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/analysis', analysisRoutes);
 
 // Health Check
-app.get('/health', (req, res) => {
+app.get('/health', (req: express.Request, res: express.Response) => {
     res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 

@@ -1,4 +1,4 @@
-import { genkit } from 'genkit';
+import { genkit, z } from 'genkit';
 import { googleAI, gemini15Pro } from '@genkit-ai/googleai';
 import { AnalysisRequest, AnalysisResponse, AnalysisResponseSchema } from '../types/analysis.types.js';
 import { buildWasteAnalysisPrompt } from '../utils/aiPromptBuilder.js';
@@ -23,27 +23,28 @@ export class GenkitService {
         }
 
         try {
-            const prompt = buildWasteAnalysisPrompt(data);
+            const textPropmt = buildWasteAnalysisPrompt(data);
 
-            const mediaParts = data.imageBuffer ? [
-                {
-                    inlineData: {
-                        data: data.imageBuffer.toString('base64'),
-                        mimeType: data.mimeType || 'image/jpeg',
-                    },
-                },
-            ] : [];
+            // Construct the multi-modal prompt correctly for Genkit v1+
+            // usage: prompt is an array of parts when mixing text and media
+            const prompt = [
+                { text: textPropmt },
+                ...(data.imageBuffer ? [{
+                    media: {
+                        url: `data:${data.mimeType || 'image/jpeg'};base64,${data.imageBuffer.toString('base64')}`
+                    }
+                }] : [])
+            ];
 
             const result = await ai.generate({
                 model: gemini15Pro,
-                prompt: prompt,
-                media: mediaParts,
+                prompt: prompt, // Pass the array of parts directly
                 output: {
                     schema: AnalysisResponseSchema,
                 },
             });
 
-            const response = result.output();
+            const response = result.output; // In v1+, result.output is a getter/property
             if (!response) {
                 throw new AppError('AI failed to provide a valid response', 502);
             }
@@ -55,7 +56,7 @@ export class GenkitService {
 
             // Detect specific AI errors to avoid retries if quota/credits are issues
             const errorMessage = error.message?.toLowerCase() || '';
-            const isQuotaError = errorMessage.includes('quota') || errorMessage.includes('429');
+            const isQuotaError = errorMessage.includes('quota') || errorMessage.includes('429') || errorMessage.includes('403');
             const isBillingError = errorMessage.includes('billing') || errorMessage.includes('credit');
 
             if (isQuotaError || isBillingError) {
