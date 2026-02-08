@@ -1,9 +1,21 @@
 {
     "version": 2,
+    "builds": [
+        {
+            "src": "src/index.ts",
+            "use": "@vercel/node"
+        }
+    ],
+    "functions": {
+        "src/index.ts": {
+            "maxDuration": 60,
+            "memory": 1024
+        }
+    },
     "rewrites": [
         {
             "source": "/(.*)",
-            "destination": "/api/index"
+            "destination": "/src/index.ts"
         }
     ],
     "headers": [
